@@ -2,18 +2,18 @@
 
 namespace Database\Seeders;
 
+use App\Models\Book;
+use App\Models\Genre;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        $this->call([
-            GenreSeeder::class,
-            BookSeeder::class,
-        ]);
+        // Вызываем сидер жанров из ЛР №4 (сохраняем настоящие жанры)
+        $this->call(GenreSeeder::class);
+
+        // Создаем 40 книг, используя существующие жанры (recycle)
+        Book::factory(40)->recycle(Genre::all())->create();
     }
 }

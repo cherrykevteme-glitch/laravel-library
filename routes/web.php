@@ -2,62 +2,23 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BookController;
+use App\Http\Controllers\GenreController;
 
 /*
 |--------------------------------------------------------------------------
-| Главная страница
+| Web Routes
 |--------------------------------------------------------------------------
 */
 
+// Главная страница (перенаправляем на каталог книг)
 Route::get('/', function () {
-    return redirect('/books');
+    return redirect()->route('books.index');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Каталог книг
-|--------------------------------------------------------------------------
-*/
+// Публичные маршруты каталога книг
+Route::get('/books', [BookController::class, 'index'])->name('books.index');
+Route::get('/books/{book}', [BookController::class, 'show'])->name('books.show');
 
-// Список всех книг
-Route::get('/books', [BookController::class, 'index'])
-    ->name('books.index');
-
-// Просмотр книги
-Route::get('/books/{book}', [BookController::class, 'show'])
-    ->whereNumber('book')
-    ->name('books.show');
-
-/*
-|--------------------------------------------------------------------------
-| Админ-панель
-|--------------------------------------------------------------------------
-*/
-
-// Главная страница админ-панели
-Route::get('/admin', function () {
-    return view('admin.dashboard');
-})->name('admin.dashboard');
-
-// Форма добавления книги
-Route::get('/admin/books/create', [BookController::class, 'create'])
-    ->name('books.create');
-
-// Сохранение новой книги
-Route::post('/admin/books', [BookController::class, 'store'])
-    ->name('books.store');
-
-// Форма редактирования книги
-Route::get('/admin/books/{book}/edit', [BookController::class, 'edit'])
-    ->whereNumber('book')
-    ->name('books.edit');
-
-// Сохранение изменений
-Route::put('/admin/books/{book}', [BookController::class, 'update'])
-    ->whereNumber('book')
-    ->name('books.update');
-
-// Удаление книги
-Route::delete('/admin/books/{book}', [BookController::class, 'destroy'])
-    ->whereNumber('book')
-    ->name('books.destroy');
+// Маршруты для связанных категорий/жанров (Задание 4)
+Route::get('/genres', [GenreController::class, 'index'])->name('genres.index');
+Route::get('/genres/{genre}', [GenreController::class, 'show'])->name('genres.show');

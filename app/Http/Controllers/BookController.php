@@ -3,79 +3,35 @@
 namespace App\Http\Controllers;
 
 use App\Models\Book;
+use App\Models\Genre;
 use Illuminate\Http\Request;
 
 class BookController extends Controller
 {
-    // Каталог книг
-    public function index()
+    public function index(Request $request)
     {
-        $books = Book::all();
+        $sort = in_array($request->sort, ['title', 'year']) ? $request->sort : 'title';
 
-        return view('books.index', compact('books'));
+        $books = Book::with('genre')
+            ->search($request->q)
+            ->when($request->genre, fn ($q, $g) => $q->where('genre_id', $g))
+            ->orderBy($sort)
+            ->paginate(9)
+            ->withQueryString();
+
+        $genres = Genre::withCount('books')->orderBy('name')->get();
+
+        return view('books.index', compact('books', 'genres'));
     }
 
-    // Просмотр одной книги
     public function show(Book $book)
     {
-        return view('books.show', compact('book'));
-    }
+        // Получаем похожие книги из той же категории (исключая текущую)
+        $relatedBooks = $book->genre->books()
+            ->where('id', '!=', $book->id)
+            ->take(3)
+            ->get();
 
-    // Форма добавления книги
-    public function create()
-    {
-        return view('admin.books.create');
-    }
-
-    // Сохранение новой книги
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
-
-        $book = new Book();
-        $book->title = $data['title'];
-        $book->author = $data['author'];
-        $book->description = $data['description'] ?? null;
-        $book->save();
-
-        return redirect()->route('books.index')
-            ->with('success', 'Книга успешно добавлена!');
-    }
-
-    // Форма редактирования книги
-    public function edit(Book $book)
-    {
-        return view('admin.books.edit', compact('book'));
-    }
-
-    // Сохранение изменений
-    public function update(Request $request, Book $book)
-    {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
-
-        $book->title = $data['title'];
-        $book->author = $data['author'];
-        $book->description = $data['description'] ?? null;
-        $book->save();
-
-        return redirect()->route('books.index')
-            ->with('success', 'Книга успешно обновлена!');
-    }
-
-    // Удаление книги
-    public function destroy(Book $book)
-    {
-        $book->delete();
-
-        return redirect()->route('books.index')
-            ->with('success', 'Книга успешно удалена!');
+        return view('books.show', compact('book', 'relatedBooks'));
     }
 }
