@@ -2,18 +2,27 @@
 
 namespace Database\Seeders;
 
-use App\Models\Book;
-use App\Models\Genre;
 use Illuminate\Database\Seeder;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Вызываем сидер жанров из ЛР №4 (сохраняем настоящие жанры)
-        $this->call(GenreSeeder::class);
+        // Создаем администратора, если его еще нет
+        User::firstOrCreate(
+            ['email' => 'admin@test.kz'], // по какому полю проверяем уникальность
+            [
+                'name' => 'Администратор',
+                'password' => Hash::make('password'), // или ваш пароль
+                'role' => 'admin',
+            ]
+        );
 
-        // Создаем 40 книг, используя существующие жанры (recycle)
-        Book::factory(40)->recycle(Genre::all())->create();
+        // Вызов нашего сидера книг
+        $this->call([
+            BookSeeder::class,
+        ]);
     }
 }

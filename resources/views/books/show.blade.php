@@ -1,33 +1,53 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ $book->title ?? 'Просмотр книги' }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light py-5">
+    <div class="container" style="max-width: 600px;">
+        <div class="card shadow p-4">
+            <h2 class="mb-3">{{ $book->title ?? 'Информация о книге' }}</h2>
+            <p class="text-muted">Автор: {{ $book->author ?? 'Не указан' }}</p>
+            <p>{{ $book->description ?? 'Описание отсутствует.' }}</p>
 
-@section('title', $book['title'] ?? 'Информация о книге')
+            <hr class="my-4">
 
-@section('content')
+            @if(session('success'))
+                <div class="mb-4 bg-success text-white p-3 rounded font-medium">
+                    {{ session('success') }}
+                </div>
+            @endif
 
-<div class="card" style="padding: 25px; margin: 20px 0;">
+            @if ($errors->any())
+                <div class="mb-4 bg-danger text-white p-3 rounded">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-    <h1>📖 {{ $book['title'] }}</h1>
+            <!-- Форма отправки бронирования -->
+            <form action="{{ route('books.store') }}" method="POST">
+                @csrf
+                <!-- Передаем ID книги скрытым полем, чтобы избежать ошибки базы данных -->
+                <input type="hidden" name="book_id" value="{{ $book->id }}">
 
-    <p>
-        <strong>Автор:</strong>
-        {{ $book['author'] }}
-    </p>
+                <div class="mb-3">
+                    <label for="phone" class="form-label text-secondary fw-bold">Телефон для связи</label>
+                    <input type="text" name="phone" id="phone" class="form-control" placeholder="+7 (___) ___-__-__" required>
+                </div>
 
-    <p>
-        <strong>Год издания:</strong>
-        {{ $book['year'] ?? 'Не указан' }}
-    </p>
+                <button type="submit" class="btn btn-primary w-100">Забронировать книгу</button>
+            </form>
 
-    @if(($book['year'] ?? 9999) < 1950)
-        <span class="badge">⭐ Классика</span>
-    @endif
-
-    <br><br>
-
-    <a href="{{ route('books.index') }}">
-        ← Вернуться в каталог
-    </a>
-
-</div>
-
-@endsection
+            <div class="mt-3 text-center">
+                <a href="{{ route('books.index') }}" class="text-decoration-none">← Вернуться к списку книг</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

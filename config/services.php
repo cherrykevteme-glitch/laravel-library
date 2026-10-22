@@ -7,19 +7,24 @@ return [
     | Third Party Services
     |--------------------------------------------------------------------------
     |
-    | This file is for storing the credentials for third party services such
-    | as Resend, Postmark, AWS, and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
+    | This file is for storing the credentials for third-party services such
+    | as Mailgun, Postmark, AWS and others. This file provides a sane
+    | default location for this type of information, allowing packages
+    | to have a conventional place to find your credentials.
     |
     */
 
-    'postmark' => [
-        'key' => env('POSTMARK_API_KEY'),
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'http' => [
+            'timeout' => 30,
+        ],
     ],
 
-    'resend' => [
-        'key' => env('RESEND_API_KEY'),
+    'postmark' => [
+        'token' => env('POSTMARK_TOKEN'),
     ],
 
     'ses' => [
@@ -33,6 +38,15 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | SMS Service Configuration
+    |--------------------------------------------------------------------------
+    */
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
     ],
 
 ];
