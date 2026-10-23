@@ -1,53 +1,24 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ $book->title ?? 'Просмотр книги' }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light py-5">
-    <div class="container" style="max-width: 600px;">
-        <div class="card shadow p-4">
-            <h2 class="mb-3">{{ $book->title ?? 'Информация о книге' }}</h2>
-            <p class="text-muted">Автор: {{ $book->author ?? 'Не указан' }}</p>
-            <p>{{ $book->description ?? 'Описание отсутствует.' }}</p>
+@extends('layouts.app')
 
-            <hr class="my-4">
+@section('title', 'Книга: ' . $book->title)
 
-            @if(session('success'))
-                <div class="mb-4 bg-success text-white p-3 rounded font-medium">
-                    {{ session('success') }}
+@section('content')
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-body p-4">
+                <h2 class="text-primary">{{ $book->title }}</h2>
+                <h5 class="text-muted mb-3">Автор: {{ $book->author }}</h5>
+                <p><strong>Год издания:</strong> {{ $book->year }}</p>
+                <hr>
+                <p><strong>Описание:</strong></p>
+                <p class="text-secondary">{{ $book->description ?? 'Описание отсутствует.' }}</p>
+
+                <div class="mt-4">
+                    <a href="{{ route('books.index') }}" class="btn btn-secondary">Назад к каталогу</a>
                 </div>
-            @endif
-
-            @if ($errors->any())
-                <div class="mb-4 bg-danger text-white p-3 rounded">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <!-- Форма отправки бронирования -->
-            <form action="{{ route('books.store') }}" method="POST">
-                @csrf
-                <!-- Передаем ID книги скрытым полем, чтобы избежать ошибки базы данных -->
-                <input type="hidden" name="book_id" value="{{ $book->id }}">
-
-                <div class="mb-3">
-                    <label for="phone" class="form-label text-secondary fw-bold">Телефон для связи</label>
-                    <input type="text" name="phone" id="phone" class="form-control" placeholder="+7 (___) ___-__-__" required>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">Забронировать книгу</button>
-            </form>
-
-            <div class="mt-3 text-center">
-                <a href="{{ route('books.index') }}" class="text-decoration-none">← Вернуться к списку книг</a>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+@endsection

@@ -1,42 +1,44 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Список книг</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light py-5">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Каталог книг</h1>
-            <a href="{{ route('home') }}" class="btn btn-outline-secondary">На главную</a>
-        </div>
+@extends('layouts.app')
 
-        @if(session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
-        @endif
+@section('title', 'Каталог книг')
 
-        <div class="row">
-            @forelse($books as $book)
-                <div class="col-md-4 mb-3">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title">{{ $book->title }}</h5>
-                            <p class="card-text text-muted mb-4">Автор: {{ $book->author ?? 'Не указан' }}</p>
-                            <div class="mt-auto">
-                                <a href="{{ route('books.show', $book->id) }}" class="btn btn-primary w-100">Подробнее / Забронировать</a>
-                            </div>
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Каталог книг</h2>
+    <a href="{{ route('books.create') }}" class="btn btn-success">+ Добавить новую книгу</a>
+</div>
+
+<div class="row">
+    @forelse($books as $book)
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-dark fw-bold">{{ $book->title }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ $book->author }} ({{ $book->year }})</h6>
+                    <p class="card-text flex-grow-1 text-secondary">{{ Str::limit($book->description, 90) }}</p>
+                    
+                    <hr>
+                    
+                    <!-- Форма бронирования -->
+                    <form action="{{ route('bookings.store') }}" method="POST" class="mb-2">
+                        @csrf
+                        <input type="hidden" name="book_id" value="{{ $book->id }}">
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="phone" class="form-control" placeholder="Ваш телефон" required>
+                            <button type="submit" class="btn btn-outline-primary">Забронировать</button>
                         </div>
-                    </div>
+                    </form>
+
+                    <a href="{{ route('books.show', $book->id) }}" class="btn btn-sm btn-light w-100 border">Подробнее</a>
                 </div>
-            @empty
-                <div class="col-12">
-                    <p class="text-muted">В базе данных пока нет ни одной книги.</p>
-                </div>
-            @endforelse
+            </div>
         </div>
-    </div>
-</body>
-</html>
+    @empty
+        <div class="col-12"><p class="text-center text-muted">Книг пока нет.</p></div>
+    @endforelse
+</div>
+
+<div class="d-flex justify-content-center mt-4">
+    {{ $books->links() }}
+</div>
+@endsection

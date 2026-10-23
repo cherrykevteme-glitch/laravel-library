@@ -5,7 +5,6 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,12 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Ошибки в /api/* всегда отдаются в формате JSON, даже без заголовка Accept
+        // Обратите внимание: перед Throwable добавлен обратный слэш \
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request, Throwable $e) => $request->is('api/*') || $request->expectsJson()
+            fn (Request $request, \Throwable $e) => $request->is('api/*') || $request->expectsJson()
         );
 
-        // Красивый ответ 404 в JSON для всех API-адресов
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'Запись не найдена'], 404);

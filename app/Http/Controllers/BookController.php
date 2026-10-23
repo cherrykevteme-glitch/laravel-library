@@ -2,117 +2,78 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Book;
 use App\Models\Booking;
-use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use Illuminate\Http\Request;
 
 class BookController extends Controller
 {
-    // Список книг для админки с пагинацией
+    // Список всех книг с пагинацией
     public function index()
     {
-        $books = Book::paginate(10);
-        return view('admin.books.index', compact('books'));
+        $books = Book::latest()->paginate(9);
+        return view('books.index', compact('books'));
     }
 
-    // Форма создания книги в админке
+    // Форма добавления книги
     public function create()
     {
-        return view('admin.books.create');
+        return view('books.create');
     }
 
-    // Сохранение книги или бронирования
-    public function store(Request $request)
+    // Сохранение новой книги
+    public function storeBook(Request $request)
     {
-        // Если это отправка формы бронирования из публичной части
-        if ($request->has('phone') && $request->has('book_id')) {
-            $request->validate([
-                'phone' => 'required|string|max:255',
-                'book_id' => 'required|exists:books,id',
-            ]);
+        $validated = $request->validate([
+            'title'       => ['required', 'string', 'max:255'],
+            'author'      => ['required', 'string', 'max:255'],
+            'year'        => ['required', 'integer'],
+            'description' => ['nullable', 'string'],
+        ]);
 
-            $existingBooking = Booking::where('user_id', Auth::id())
-                ->where('book_id', $request->book_id)
-                ->first();
+        // Указываем дефолтный genre_id, чтобы база данных не выдавала ошибку NOT NULL
+        $validated['genre_id'] = 1;
 
-            if ($existingBooking) {
-                return back()->withErrors(['phone' => 'Вы уже оставляли заявку на эту книгу.']);
-            }
+        Book::create($validated);
 
-            $booking = Booking::create([
-                'user_id' => Auth::id(),
-                'book_id' => $request->book_id,
-                'phone' => $request->phone,
-            ]);
+        return redirect()->route('books.index')->with('success', 'Книга успешно добавлена в каталог!');
+    }
 
-            // Вызов события из Задания 1
-            \App\Events\BookingCreated::dispatch($booking);
+    // Просмотр одной книги (детально)
+    public function show(Book $book)
+    {
+        return view('books.show', compact('book'));
+    }
 
-            return back()->with('success', 'Заявка успешно отправлена!');
+    // Сохранение бронирования
+    public function storeBooking(Request $request)
+    {
+        $validated = $request->validate([
+            'book_id' => ['required', 'exists:books,id'],
+            'phone'   => ['required', 'string', 'max:20'],
+        ]);
+
+        $existingBooking = Booking::where('book_id', $validated['book_id'])
+            ->where('phone', $validated['phone'])
+            ->first();
+
+        if ($existingBooking) {
+            return back()->withErrors(['phone' => 'Вы уже оставляли заявку на эту книгу.']);
         }
 
-        // Стандартное сохранение новой книги из админки
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'nullable|string|max:255',
+        $userId = auth()->id();
+        if (!$userId) {
+            $firstUser = User::first();
+            $userId = $firstUser ? $firstUser->id : 1;
+        }
+
+        Booking::create([
+            'user_id' => $userId,
+            'book_id' => $validated['book_id'],
+            'phone'   => $validated['phone'],
         ]);
 
-        Book::create($request->all());
-
-        return redirect()->route('admin.books.index')->with('success', 'Книга успешно добавлена!');
-    }
-
-    // Форма редактирования книги (передает книгу и коллекцию жанров-объектов)
-    public function edit($id)
-    {
-        $book = Book::findOrFail($id);
-        
-        $genres = collect([
-            (object)['id' => 1, 'name' => 'Художественная литература'],
-            (object)['id' => 2, 'name' => 'Научная'],
-            (object)['id' => 3, 'name' => 'Фантастика'],
-            (object)['id' => 4, 'name' => 'Программирование'],
-        ]);
-
-        return view('admin.books.edit', compact('book', 'genres'));
-    }
-
-    // Обновление книги
-    public function update(Request $request, $id)
-    {
-        $book = Book::findOrFail($id);
-        
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'nullable|string|max:255',
-        ]);
-
-        $book->update($request->all());
-
-        return redirect()->route('admin.books.index')->with('success', 'Книга успешно обновлена!');
-    }
-
-    // Удаление книги
-    public function destroy($id)
-    {
-        $book = Book::findOrFail($id);
-        $book->delete(); // Сработает наблюдатель BookObserver на удаление файлов
-
-        return redirect()->route('admin.books.index')->with('success', 'Книга успешно удалена!');
-    }
-
-    // Обычный метод скачивания PDF
-    public function pdf()
-    {
-        return back()->with('success', 'PDF-каталог успешно сгенерирован!');
-    }
-
-    // Фоновая генерация PDF-каталога (Задание 4)
-    public function generatePdfAsync(Request $request)
-    {
-        \App\Jobs\GenerateCatalogPdf::dispatch($request->user());
-
-        return back()->with('success', 'PDF-каталог формируется в фоне, скоро вы получите уведомление.');
+        return redirect()->back()->with('success', 'Заявка на бронирование успешно оформлена!');
     }
 }

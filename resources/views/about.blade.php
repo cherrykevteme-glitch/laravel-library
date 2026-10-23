@@ -1,12 +1,26 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>О проекте</title>
-</head>
-<body style="font-family: sans-serif; padding: 40px; text-align: center;">
-    <h1>О проекте</h1>
-    <p>Это страница с информацией о нашем приложении.</p>
-    <a href="{{ route('books.index') }}">Вернуться в каталог</a>
-</body>
-</html>
+@extends('layouts.app')
+
+@section('title', 'О проекте')
+
+@section('content')
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-body p-4">
+                <h2 class="text-primary mb-3">О проекте</h2>
+                <p><strong>Разработчик / Главный:</strong> {{ $author }}</p>
+                <p><strong>Группа:</strong> {{ $group }}</p>
+                <hr>
+                <p class="text-secondary">
+                    Этот проект представляет собой современное веб-приложение на базе Laravel и Bootstrap. 
+                    Оно включает в себя полноценный каталог книг, систему бронирования для пользователей 
+                    и REST API интерфейс для интеграции.
+                </p>
+                <div class="mt-4">
+                    <a href="{{ route('home') }}" class="btn btn-secondary">На главную</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

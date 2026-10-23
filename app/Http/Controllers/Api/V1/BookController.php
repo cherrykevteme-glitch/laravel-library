@@ -3,71 +3,56 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreBookRequest;
+use App\Http\Requests\UpdateBookRequest;
 use App\Http\Resources\BookResource;
 use App\Models\Book;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 
 class BookController extends Controller
 {
-    /**
-     * Список записей с фильтрацией, поиском, сортировкой и пагинацией.
-     */
-    public function index(Request $request)
+    public function store(StoreBookRequest $request)
     {
-        $data = $request->validate([
-            'q'        => ['nullable', 'string', 'max:100'],
-            'genre'    => ['nullable', 'integer', 'exists:genres,id'],
-            'sort'     => ['nullable', 'in:title,year,-year'],
-            'per_page' => ['nullable', 'integer', 'between:1,50'],
-        ]);
+        abort_unless($request->user()->tokenCan('write'), 403, 'Токену не хватает права write');
 
-        $sort  = $data['sort'] ?? 'title';
-        
-        $books = Book::with('genre')
-            ->search($data['q'] ?? null)
-            ->when($data['genre'] ?? null, fn ($q, $g) => $q->where('genre_id', $g))
-            ->orderBy(ltrim($sort, '-'), str_starts_with($sort, '-') ? 'desc' : 'asc')
-            ->paginate($data['per_page'] ?? 10)
-            ->withQueryString();
+        $data = $request->validated();
 
-        return BookResource::collection($books);
+        // Загрузка файла обложки при наличии
+        if ($request->hasFile('cover')) {
+            $data['cover_path'] = $request->file('cover')->store('covers', 'public');
+        }
+
+        $book = Book::create($data + ['user_id' => $request->user()->id]);
+
+        return (new BookResource($book->load('genre')))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    /**
-     * Показ одной конкретной записи.
-     */
-    public function show(Book $book)
+    public function update(UpdateBookRequest $request, Book $book)
     {
+        abort_unless($request->user()->tokenCan('write'), 403, 'Токену не хватает права write');
+        Gate::authorize('update', $book);
+
+        $data = $request->validated();
+
+        if ($request->hasFile('cover')) {
+            $data['cover_path'] = $request->file('cover')->store('covers', 'public');
+        }
+
+        $book->update($data);
+
         return new BookResource($book->load('genre'));
     }
 
-    /**
-     * Случайная запись (Задание 4).
-     */
-    public function random()
+    public function destroy(Request $request, Book $book)
     {
-        $book = Book::with('genre')->inRandomOrder()->first();
+        abort_unless($request->user()->tokenCan('write'), 403, 'Токену не хватает права write');
+        Gate::authorize('delete', $book);
 
-        if (!$book) {
-            return response()->json(['message' => 'Записи не найдены'], 404);
-        }
+        $book->delete();
 
-        return new BookResource($book);
-    }
-
-    /**
-     * Статистика каталога с кэшированием (Задание 4).
-     */
-    public function stats()
-    {
-        $stats = Cache::remember('api_books_stats', 300, function () {
-            return [
-                'total_books' => Book::count(),
-                'last_added'  => Book::latest()->value('created_at')?->toIso8601String(),
-            ];
-        });
-
-        return response()->json($stats);
+        return response()->noContent();
     }
 }

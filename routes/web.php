@@ -1,111 +1,69 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use App\Http\Controllers\BookController;
-use App\Models\Book;
+use App\Http\Middleware\SetLocale;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Admin\BookController;
+use App\Http\Controllers\Admin\GenreController;
+use App\Http\Controllers\Admin\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-| Полный набор маршрутов приложения с учетом кэширования (ЛР №11)
+| Web Routes (Проект "Библиотека" — Лабораторные работы №1–14)
 |--------------------------------------------------------------------------
 */
 
-// 1. Главная страница и каталог с кэшированием данных на 10 минут (Задание 4, ЛР №11)
+// 1. ЛР №14: Маршрут для переключения языка интерфейса (RU | ҚАЗ | EN)
+Route::get('/locale/{locale}', function (string $locale) {
+    session(['locale' => $locale]);
+    return back();
+})->whereIn('locale', SetLocale::LOCALES)->name('locale');
+
+// 2. ЛР №1–5: Базовые публичные страницы
 Route::get('/', function () {
-    $books = Cache::remember('home.books', now()->addMinutes(10), function () {
-        return Book::paginate(10);
-    });
-    return view('catalog', compact('books'));
+    return view('welcome');
 })->name('home');
 
-Route::get('/catalog', function () {
-    $books = Cache::remember('home.books', now()->addMinutes(10), function () {
-        return Book::paginate(10);
-    });
-    return view('catalog', compact('books'));
-})->name('catalog');
-
-Route::get('/books', function () {
-    $books = Book::paginate(10);
-    return view('books.index', compact('books'));
-})->name('books.index');
-
-Route::get('/books/{id}', function ($id) {
-    $book = Book::findOrFail($id);
-    return view('books.show', compact('book'));
-})->name('books.show');
-
-// Публичные обработчики отправки форм из каталога/карточки
-Route::post('/books', [BookController::class, 'store'])->name('books.store');
-Route::put('/books/{id}', [BookController::class, 'update'])->name('books.update');
-
-// 2. Информационные страницы
 Route::get('/about', function () {
     return view('about');
 })->name('about');
 
-Route::get('/rules', function () {
-    return view('rules');
-})->name('rules');
+Route::get('/contacts', function () {
+    return view('contacts');
+})->name('contacts');
 
-// 3. Авторизация и Регистрация
-Route::get('/login', function () {
-    return view('auth.login');
-})->name('login');
+// 3. ЛР №6–8: Аутентификация (Вход, Регистрация, Выход)
+// (Если у вас используется Laravel Breeze / Jetstream, эти маршруты могут подключаться через auth.php, 
+// но если вы писали контроллеры сами, используйте этот блок:)
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::post('/login', function (Request $request) {
-    $credentials = $request->validate([
-        'email' => ['required', 'email'],
-        'password' => ['required'],
-    ]);
+Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+Route::post('/register', [RegisterController::class, 'register']);
 
-    if (Auth::attempt($credentials)) {
-        $request->session()->regenerate();
-        return redirect()->intended('/admin/books');
-    }
+// 4. ЛР №9–12: Публичный и административный каталог книг и жанров (Вариант 1)
+Route::get('/books', [BookController::class, 'index'])->name('books.index');
+Route::get('/books/{book}', [BookController::class, 'show'])->name('books.show');
 
-    return back()->withErrors([
-        'email' => 'Введенные учетные данные неверны.',
-    ])->onlyInput('email');
+Route::get('/genres', [GenreController::class, 'index'])->name('genres.index');
+
+// 5. ЛР №10–13: Защищенные маршруты (доступны только авторизованным пользователям)
+Route::middleware(['auth'])->group(function () {
+    // Личный кабинет / Дашборд
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Управление книгами и заявками (Админка / Действия пользователя)
+    Route::post('/books/{book}/book', [BookController::class, 'storeBooking'])->name('books.booking');
+    
+    // Административные CRUD маршруты (если требуются по варианту)
+    Route::resource('admin/books', BookController::class, ['names' => 'admin.books']);
+    Route::resource('admin/genres', GenreController::class, ['names' => 'admin.genres']);
 });
 
-Route::get('/register', function () {
-    return view('auth.register');
-})->name('register');
-
-Route::post('/register', function (Request $request) {
-    return redirect()->route('login');
-});
-
-Route::post('/logout', function (Request $request) {
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    return redirect('/');
-})->name('logout');
-
-// 4. Панель администратора и управление книгами (защищено авторизацией)
-Route::middleware(['auth'])->prefix('admin')->group(function () {
-    
-    Route::get('/', function () {
-        return view('admin.index'); 
-    })->name('admin.index');
-
-    // Управление книгами в админке
-    Route::get('/books', [BookController::class, 'index'])->name('admin.books.index');
-    
-    // Маршруты для скачивания / генерации PDF в админке
-    Route::get('/books/pdf', [BookController::class, 'pdf'])->name('admin.books.pdf');
-    Route::get('/books/pdf-background', [BookController::class, 'generatePdfAsync'])->name('admin.books.pdf.bg');
-
-    Route::get('/books/create', [BookController::class, 'create'])->name('admin.books.create');
-    Route::post('/books', [BookController::class, 'store'])->name('admin.books.store');
-    Route::get('/books/{id}/edit', [BookController::class, 'edit'])->name('admin.books.edit');
-    Route::put('/books/{id}', [BookController::class, 'update'])->name('admin.books.update');
-    Route::delete('/books/{id}', [BookController::class, 'destroy'])->name('admin.books.destroy');
+// 6. ЛР №14 (Задание 5.4): Временный маршрут для проверки обработки ошибок
+// Внимание: после демонстрации преподавателю этот маршрут нужно удалить!
+Route::get('/test-error', function () {
+    throw new \RuntimeException('Проверка обработки исключений и записи в журнал из ЛР №14');
 });

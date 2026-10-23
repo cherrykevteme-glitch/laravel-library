@@ -1,0 +1,9 @@
+$kind: http-request
+description: ""
+url: http://127.0.0.1:8000/api/v1/login
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: 1|O1lP9285TzRaVQBZnuuebqK2ZeLJICkUtgtVPCBm7fb3018a
+order: 1000

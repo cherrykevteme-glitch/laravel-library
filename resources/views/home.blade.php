@@ -3,19 +3,11 @@
 @section('title', 'Главная страница')
 
 @section('content')
-    <h2>Добро пожаловать в библиотеку!</h2>
-
-    <p>Здесь вы можете ознакомиться с каталогом книг.</p>
-
-    <p>
-        <a href="/books">Перейти к каталогу книг →</a>
-    </p>
-
-    <h3>Что есть в нашей библиотеке?</h3>
-
-    <ul>
-        <li>Каталог книг</li>
-        <li>Информация об авторах</li>
-        <li>Правила библиотеки</li>
-    </ul>
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm border">
+    <div class="container-fluid py-3">
+        <h1 class="display-5 fw-bold text-primary">Добро пожаловать в {{ config('app.name', 'Библиотеку') }}</h1>
+        <p class="col-md-8 fs-4 text-secondary">Здесь вы можете просматривать доступные книги, добавлять новые экземпляры и оформлять заявки на бронирование.</p>
+        <a href="{{ route('books.index') }}" class="btn btn-primary btn-lg mt-2">Перейти в каталог книг</a>
+    </div>
+</div>
 @endsection
